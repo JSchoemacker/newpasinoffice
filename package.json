@@ -28,7 +28,9 @@
     "react-native-web": "^0.20.0",
     "@expo/metro-runtime": "~5.0.4",
     "expo-secure-store": "14.2.4",
-    "expo-sharing": "~13.1.5"
+    "expo-sharing": "~13.1.5",
+    "expo-font": "~13.3.2",
+    "react-native-gesture-handler": "~2.24.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

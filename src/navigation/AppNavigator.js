@@ -29,7 +29,7 @@ function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <>
@@ -42,7 +42,7 @@ function AppNavigator() {
           <Stack.Screen name="Login" component={LoginScreen} />
         )}
       </Stack.Navigator>
-    </NavigationContainer>
+ 
   );
 }
 

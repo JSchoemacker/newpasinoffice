@@ -1,10 +1,16 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import AppWithProvider from './src/navigation/AppNavigator';
+import { UserProvider } from './src/contexts/UserContext';
+import { DarkModeProvider } from './src/contexts/DarkModeContext';
 
 export default function App() {
   return (
-    <View style={{flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#fff'}}>
-      <Text style={{fontSize:24}}>Test APK minimal</Text>
-    </View>
+    <UserProvider>
+      <DarkModeProvider>
+        <NavigationContainer>
+          <AppWithProvider />
+        </NavigationContainer>
+      </DarkModeProvider>
+    </UserProvider>
   );
 }
