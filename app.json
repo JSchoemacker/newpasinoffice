@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PasinoApp",
-    "slug": "PasinoApp",
+    "name": "PASINO Office",
+    "slug": "pasino-office-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,17 +13,28 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "ch.pasino.office"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "ch.pasino.office"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "scheme": "pasino-office",
+    "plugins": [
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "de434426-4e8a-4f5f-b1a2-8b9eacce392e"
+      }
     }
   }
 }
