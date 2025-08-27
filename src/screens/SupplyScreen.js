@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, StatusBar } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useUser } from '../contexts/UserContext';
@@ -206,7 +206,16 @@ export default function SupplyScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.bg }]}> 
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          {
+            backgroundColor: theme.bg,
+            paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, // Ajout du paddingTop
+          },
+        ]}
+      >
       <View style={{flexDirection:'row', alignItems:'center', justifyContent:'space-between', width:'100%', marginBottom:24, marginTop: 5, paddingLeft: 12, paddingRight: 12}}>
         <Text style={[styles.title, { color: theme.text }]}>Fournitures</Text>
         <View style={{flexDirection:'row', alignItems:'center'}}>
@@ -353,7 +362,8 @@ export default function SupplyScreen() {
           </View>
         </View>
       )}
-    </ScrollView>
+        </ScrollView>
+    </SafeAreaView>
   );
 }
 

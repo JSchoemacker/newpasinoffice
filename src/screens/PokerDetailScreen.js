@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import AnimatedGoldName from '../components/AnimatedGoldName';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal, Platform, StatusBar } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { useUser } from '../contexts/UserContext';
@@ -217,7 +217,6 @@ export default function PokerDetailScreen() {
     }
   };
 
-  console.log(players)
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.bg }]}> 
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -358,6 +357,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     minHeight: '100%',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 0 : 24,
   },
   title: {
     fontSize: 28,

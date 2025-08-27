@@ -8,8 +8,12 @@ const Stack = createStackNavigator();
 export default function PokerStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Poker" component={PokerScreen} />
-      <Stack.Screen name="PokerDetail" component={PokerDetailScreen} />
+    <Stack.Screen
+    name="Poker"
+    component={PokerScreen}
+  options={{ headerShown: false }}
+  />
+      <Stack.Screen name="PokerDetail" component={PokerDetailScreen}   options={{ headerShown: false }}/>
     </Stack.Navigator>
   );
 }

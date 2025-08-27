@@ -67,6 +67,8 @@ export default function TabNavigator() {
           tabBarLabel: 'Accueil',
         }}
       />
+   
+      
       <Tab.Screen
         name="Events"
         component={EventScreen}
@@ -74,6 +76,9 @@ export default function TabNavigator() {
           tabBarLabel: 'Events',
         }}
       />
+      
+
+      
       <Tab.Screen
         name="Games"
         component={GamesStack}
@@ -81,14 +86,18 @@ export default function TabNavigator() {
           tabBarLabel: 'Games',
         }}
       />
-  {/* Tab Poker supprimé, navigation Poker via Stack principal */}
-      <Tab.Screen
+
+
+   <Tab.Screen
         name="Supply"
         component={SupplyScreen}
         options={{
           tabBarLabel: 'Supply',
         }}
       />
+
+
+   
       <Tab.Screen
         name="Options"
         component={OptionsScreen}

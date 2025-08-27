@@ -16,11 +16,8 @@ function CustomHeader() {
     ? { bg: '#181818', text: '#fff', border: '#333' }
     : { bg: '#fff', text: '#333', border: '#e0e0e0' };
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.bg, borderBottomWidth: 1, borderBottomColor: theme.border, paddingHorizontal: 12, paddingVertical: 10 }}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 8 }}>
-        <Text style={{ fontSize: 22, color: theme.text }}>{'←'}</Text>
-      </TouchableOpacity>
-      <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>Games</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.bg, borderBottomWidth: 1, borderBottomColor: theme.border, paddingHorizontal: 12, paddingVertical: 20 }}>
+ 
     </View>
   );
 }

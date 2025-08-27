@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "PASINO Office",
+    "name": "PASINOffice",
     "slug": "pasino-office-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -36,6 +36,12 @@
       "eas": {
         "projectId": "de434426-4e8a-4f5f-b1a2-8b9eacce392e"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/de434426-4e8a-4f5f-b1a2-8b9eacce392e"
     }
   }
 }

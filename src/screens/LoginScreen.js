@@ -1,255 +1,237 @@
+// ...imports...
 import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   SafeAreaView,
   Alert,
   Modal,
+  TextInput,
 } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
-import { makeRedirectUri, AuthRequest } from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
-import { firebase } from '../config/firebase';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
-import { useUser } from '../contexts/UserContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { OAuthProvider, signInWithCredential, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { parseJwt } from '../config/auth';
-import { Buffer } from 'buffer';
-
-WebBrowser.maybeCompleteAuthSession();
-const clientId = '56ccd41b-2884-44fa-9754-5a255a04b710';
-const tenantId = 'e3edb6c6-f0d2-4fd1-bf66-82108ca69de0';
-const teams = ["Support", "RG", "Marketing", "CRM", "Finance", "Games", "IT", "DM"];
+import { useUser } from '../contexts/UserContext';
 
 export default function LoginScreen() {
-  const { error, isLoading, clearError, setUser } = useAuth();
-  const { saveUserData } = useUser();
-  const [showTeamModal, setShowTeamModal] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState(teams[0]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createEmail, setCreateEmail] = useState('');
+  const [createNom, setCreateNom] = useState('');
+  const [createPrenom, setCreatePrenom] = useState('');
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+
   const navigation = useNavigation();
+  const { saveUserData } = useUser();
 
-  React.useEffect(() => {
-    if (error) {
-      Alert.alert('Erreur', error);
-      clearError();
-    }
-  }, [error]);
+  const isPasinoEmail = (mail) => mail.trim().toLowerCase().endsWith('@pasino.ch');
 
-  // Fonction async pour la validation du modal
-  const handleValidateTeam = async () => {
-    const user = firebase.auth().currentUser;
-    let firstName = '';
-    let lastName = '';
-    if (user.displayName) {
-      const parts = user.displayName.split(' ');
-      firstName = parts[0] || '';
-      lastName = parts.slice(1).join(' ') || '';
-    }
-        // Récupérer les infos stockées lors de la création
-        const pending = window._pendingUserData || {};
-  const db = getFirestore();
-  const usersRef = collection(db, 'users');
-        try {
-       
-        } catch (createErr) {
-          Alert.alert('Erreur création utilisateur', JSON.stringify(createErr));
-          setLoading(false);
-          return;
-        }
-                 // Vérification Firestore après création ou connexion
-                 const firestoreDb = getFirestore();
-                 const firestoreUsersRef = collection(firestoreDb, 'users');
-                 console.log('Vérification Firestore pour email:', email);
-                 const q = query(firestoreUsersRef, where('connexion', '==', email));
-                 const querySnapshot = await getDocs(q);
-                 console.log('Résultat Firestore querySnapshot.empty:', querySnapshot.empty);
-                 if (querySnapshot.empty) {
-                   console.log('Affichage du modal équipe après Firebase');
-                   setShowTeamModal(true);
-                }
-                // Fin de la fonction handleValidateTeam
-              };
-
-  // Fonction de connexion Azure AD
+  // Connexion utilisateur
   const handleLogin = async () => {
+    if (!isPasinoEmail(email)) {
+      Alert.alert('Erreur', "Seules les adresses '@pasino.ch' sont autorisées.");
+      return;
+    }
+    if (!password) {
+      Alert.alert('Erreur', 'Veuillez entrer un mot de passe.');
+      return;
+    }
+    setLoading(true);
     try {
-      const redirectUri = makeRedirectUri({ useProxy: true });
-      const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=fragment&scope=openid profile email&state=12345`;
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
-      if (result.type === 'success' && result.params && result.params.access_token) {
-        // Log complet du token pour debug
-        // Décrypter le token JWT (compatible React Native)
-        const token = result.params.access_token;
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = Buffer.from(base64, 'base64').toString('utf8');
-        console.log('Payload brut:', jsonPayload);
-        const payload = JSON.parse(jsonPayload);
-        console.log('Payload objet:', payload);
-        const nom = payload.family_name || payload.surname || '';
-        const prenom = payload.given_name || (payload.name ? payload.name.split(' ')[0] : '');
-        // HERE
-        Alert.alert('Connexion réussie', `Nom: ${nom}\nPrénom: ${prenom}`);
-      } else {
-        // Récupération du token pour le web si non présent dans params
-        let token = result.params?.access_token;
-        if (!token && result.url) {
-          const hash = result.url.split('#')[1];
-          if (hash) {
-            const params = new URLSearchParams(hash);
-            token = params.get('access_token');
-          }
-        }
-        if (token) {
-          const base64Url = token.split('.')[1];
-          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const jsonPayload = Buffer.from(base64, 'base64').toString('utf8');
-          const payload = JSON.parse(jsonPayload);
-          const nom = payload.family_name || payload.surname || '';
-          const prenom = payload.given_name || (payload.name ? payload.name.split(' ')[0] : '');
-          // Création de l'email et du mot de passe à partir du prénom et nom
-          const emailGen = `${prenom.charAt(0)}${nom.replace(/\s/g, '')}@pasino.ch`.toLowerCase();
-          const passwordGen = `${prenom.charAt(0)}${nom.replace(/\s/g, '')}`;
-          // Vérification dans Firebase Auth
-          try {
-            const auth = getAuth();
-            await signInWithEmailAndPassword(auth, emailGen, passwordGen);
-            Alert.alert('Succès', 'Utilisateur trouvé et connecté dans Firebase Auth');
-            // Récupérer ou créer le doc Firestore utilisateur
-            const db = getFirestore();
-            const usersRef = collection(db, 'users');
-            const q = query(usersRef, where('email', '==', emailGen));
-            const querySnapshot = await getDocs(q);
-            let userDocData;
-            if (querySnapshot.empty) {
-              // Créer le document Firestore avec toutes les infos
-              const docRef = await addDoc(usersRef, {
-                email: emailGen,
-                nom: nom,
-                prenom: prenom,
-                isPoker: false,
-                isSupply: false,
-                isBlocked: false,
-                createdAt: new Date(),
-                // Ajoute ici d'autres champs personnalisés si besoin
-              });
-              userDocData = {
-                email: emailGen,
-                nom,
-                prenom,
-                isPoker: false,
-                isSupply: false,
-                isBlocked: false,
-                createdAt: new Date(),
-                id: docRef.id
-                // ...autres champs...
-              };
-            } else {
-              // Mettre à jour le document existant si besoin
-              const doc = querySnapshot.docs[0];
-              userDocData = { id: doc.id, ...doc.data() };
-              // Exemple de mise à jour :
-              // await updateDoc(doc.ref, { nom, prenom, ...autresChamps });
-            }
-            // Distribuer toutes les infos dans le contexte
-            await saveUserData(userDocData);
-            setTimeout(() => {
-              navigation.navigate('Home');
-            }, 100);
-          } catch (err) {
-            try {
-              const auth = getAuth();
-              await createUserWithEmailAndPassword(auth, emailGen, passwordGen);
-              Alert.alert('Utilisateur créé dans Firebase Auth', 'Le compte a été créé.');
-              // Création du document Firestore
-              try {
-                const db = getFirestore();
-              
-        // Vérifier si le document existe déjà sur Firestore
-        try {
-          const db = getFirestore();
-          const usersRef = collection(db, 'users');
-          const q = query(usersRef, where('email', '==', emailGen));
-          const querySnapshot = await getDocs(q);
-          let userDocData;
-          if (querySnapshot.empty) {
-            // Créer le document Firestore uniquement s'il n'existe pas
-            const docRef = await addDoc(usersRef, {
-              email: emailGen,
-              nom: nom,
-              prenom: prenom,
-              createdAt: new Date(),
-              isPoker: false,
-              isSupply: false,
-              isBlocked: false
-            });
-            userDocData = {
-              email: emailGen,
-              nom,
-              prenom,
-              createdAt: new Date(),
-              isPoker: false,
-              isSupply: false,
-              isBlocked: false,
-              id: docRef.id
-            };
-            Alert.alert('Utilisateur créé', 'Un document a été ajouté dans Firestore (users)');
-          } else {
-            // Récupérer les données du premier document trouvé
-            userDocData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
-          }
-          await saveUserData({ nom, prenom });
-          // Attendre la fin de la sauvegarde avant de naviguer
-          setTimeout(() => {
-            navigation.navigate('Home');
-          }, 100); // petit délai pour garantir la propagation du contexte
-        } catch (firestoreErr) {
-          console.log('Erreur Firestore:', firestoreErr.message);
-          Alert.alert('Erreur Firestore', firestoreErr.message);
-        }
-              } catch (firestoreErr) {
-                Alert.alert('Erreur Firestore', firestoreErr.message);
-              }
-            } catch (createErr) {
-              Alert.alert('Erreur création Firebase Auth', createErr.message);
-            }
-          }
-        } else {
-          Alert.alert('Erreur', 'Token non trouvé dans la réponse Azure AD.');
-        }
+      const auth = getAuth();
+      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+
+      // Récupère les infos Firestore
+      const db = getFirestore();
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', email.trim().toLowerCase()));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        await saveUserData({ id: doc.id, ...doc.data() });
       }
+
+      setLoading(false);
+      navigation.replace('Main');
     } catch (err) {
+      setLoading(false);
+      Alert.alert('Erreur de connexion', err.message);
+    }
+  };
+
+  // Création de compte
+  const handleCreateAccount = async () => {
+    if (!isPasinoEmail(createEmail)) {
+      Alert.alert('Erreur', "Seules les adresses '@pasino.ch' sont autorisées.");
+      return;
+    }
+    if (!createNom || !createPrenom) {
+      Alert.alert('Erreur', 'Veuillez renseigner votre nom et prénom.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const auth = getAuth();
+      const db = getFirestore();
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', createEmail.trim().toLowerCase()));
+      const querySnapshot = await getDocs(q);
+
+      const generatedPassword = Math.random().toString(36).slice(-8);
+
+      await createUserWithEmailAndPassword(auth, createEmail.trim().toLowerCase(), generatedPassword);
+
+      let userDocData;
+      if (querySnapshot.empty) {
+        const docRef = await addDoc(usersRef, {
+          email: createEmail.trim().toLowerCase(),
+          nom: createNom.trim(),
+          prenom: createPrenom.trim(),
+          isPoker: false,
+          isSupply: false,
+          isBlocked: false,
+          createdAt: new Date(),
+        });
+        userDocData = {
+          email: createEmail.trim().toLowerCase(),
+          nom: createNom.trim(),
+          prenom: createPrenom.trim(),
+          isPoker: false,
+          isSupply: false,
+          isBlocked: false,
+          createdAt: new Date(),
+          id: docRef.id
+        };
+      } else {
+        const doc = querySnapshot.docs[0];
+        userDocData = { id: doc.id, ...doc.data() };
+      }
+
+      await sendPasswordResetEmail(auth, createEmail.trim().toLowerCase());
+      await saveUserData(userDocData);
+
+      setLoading(false);
+      setShowCreateModal(false);
+      Alert.alert(
+        'Compte créé',
+        "Votre compte a été créé. Un email pour définir votre mot de passe vient d'être envoyé à l'adresse renseignée."
+      );
+    } catch (err) {
+      setLoading(false);
+      Alert.alert('Erreur création de compte', err.message);
+    }
+  };
+
+  // Mot de passe oublié
+  const handleResetPassword = async () => {
+    if (!isPasinoEmail(resetEmail)) {
+      Alert.alert('Erreur', "Seules les adresses '@pasino.ch' sont autorisées.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const auth = getAuth();
+      await sendPasswordResetEmail(auth, resetEmail.trim().toLowerCase());
+      setLoading(false);
+      setShowResetModal(false);
+      Alert.alert(
+        'Email envoyé',
+        "Un email pour réinitialiser votre mot de passe a été envoyé à l'adresse renseignée."
+      );
+    } catch (err) {
+      setLoading(false);
       Alert.alert('Erreur', err.message);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: 'white' }}>Connexion</Text>
-        {/* Ajoutez ici vos champs de formulaire, boutons, etc. */}
-        <TouchableOpacity style={{ backgroundColor: '#007AFF', padding: 12, borderRadius: 8 }} onPress={handleLogin}>
-          <Text style={{ color: 'white', fontWeight: 'bold' }}>Se connecter</Text>
+      <View style={styles.centered}>
+        <Text style={styles.title}>PASINOffice</Text>
+        <TextInput
+          style={[styles.input, { color: '#222' }]}
+          placeholder="Adresse email @pasino.ch"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={[styles.input, { color: '#222' }]}
+          placeholder="Mot de passe"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? 'Connexion...' : 'Se connecter'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.link} onPress={() => setShowCreateModal(true)}>
+          <Text style={styles.linkText}>Créer un compte</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.link} onPress={() => setShowResetModal(true)}>
+          <Text style={styles.linkText}>Mot de passe oublié</Text>
         </TouchableOpacity>
       </View>
-      {/* Modal de sélection d'équipe */}
-      <Modal visible={showTeamModal} transparent animationType="slide">
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 12, width: '80%' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>Sélectionnez votre équipe</Text>
-            {teams.map(team => (
-              <TouchableOpacity key={team} style={{ padding: 10, marginVertical: 4, backgroundColor: selectedTeam === team ? '#007AFF' : '#eee', borderRadius: 6 }} onPress={() => setSelectedTeam(team)}>
-                <Text style={{ color: selectedTeam === team ? 'white' : 'black' }}>{team}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity style={{ marginTop: 16, backgroundColor: '#007AFF', padding: 10, borderRadius: 6 }} onPress={handleValidateTeam}>
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>Valider</Text>
+      {/* Modal création de compte */}
+      <Modal visible={showCreateModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Créer un compte</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Adresse email @pasino.ch"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={createEmail}
+              onChangeText={setCreateEmail}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Nom"
+              autoCapitalize="words"
+              value={createNom}
+              onChangeText={setCreateNom}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Prénom"
+              autoCapitalize="words"
+              value={createPrenom}
+              onChangeText={setCreatePrenom}
+            />
+            <TouchableOpacity style={styles.button} onPress={handleCreateAccount} disabled={loading}>
+              <Text style={styles.buttonText}>{loading ? 'Création...' : 'Valider'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.link} onPress={() => setShowCreateModal(false)}>
+              <Text style={styles.linkText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      {/* Modal reset mot de passe */}
+      <Modal visible={showResetModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Mot de passe oublié</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Adresse email @pasino.ch"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={resetEmail}
+              onChangeText={setResetEmail}
+            />
+            <TouchableOpacity style={styles.button} onPress={handleResetPassword} disabled={loading}>
+              <Text style={styles.buttonText}>{loading ? 'Envoi...' : 'Réinitialiser'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.link} onPress={() => setShowResetModal(false)}>
+              <Text style={styles.linkText}>Annuler</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -259,10 +241,40 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#292929',
+  container: { flex: 1, backgroundColor: '#292929' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: 'white' },
+  input: {
+    width: 260,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 8,
+    fontSize: 16,
   },
-  // ...autres styles existants...
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    width: 260,
+    alignItems: 'center',
+  },
+  buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16, textAlign: 'center', },
+  link: { marginTop: 16 },
+  linkText: { color: '#007AFF', fontWeight: 'bold', fontSize: 16 },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 24,
+    borderRadius: 12,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 16 }
 });
-// Fin du composant principal
